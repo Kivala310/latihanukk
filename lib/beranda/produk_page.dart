@@ -97,6 +97,30 @@ class _ProdukPageState extends State<ProdukPage> {
     );
   }
 
+  Future<void> deleteProduk(int produkID) async {
+    try {
+      await Supabase.instance.client
+          .from('produk')
+          .delete()
+          .eq('ProdukID', produkID);
+      fetchProduk();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Produk berhasil dihapus!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      print('Error deleting product: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gagal menghapus produk!'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -104,17 +128,17 @@ class _ProdukPageState extends State<ProdukPage> {
       child: Scaffold(
         backgroundColor: const Color.fromRGBO(120, 179, 206, 1),
         //appBar: AppBar(
-          // title: const Text('Fish & Coral Store'),
-          // centerTitle: true,
-          // backgroundColor: const Color.fromRGBO(201, 230, 240, 1),
-          // bottom: const TabBar(
-          //   tabs: [
-          //     Tab(icon: Icon(Icons.store_mall_directory), text: 'Produk'),
-          //     Tab(icon: Icon(Icons.person), text: 'Pelanggan'),
-          //     Tab(icon: Icon(Icons.point_of_sale), text: 'Penjualan'),
-          //     Tab(icon: Icon(Icons.account_circle), text: 'Akun'),
-          //   ],
-          // ),
+        // title: const Text('Fish & Coral Store'),
+        // centerTitle: true,
+        // backgroundColor: const Color.fromRGBO(201, 230, 240, 1),
+        // bottom: const TabBar(
+        //   tabs: [
+        //     Tab(icon: Icon(Icons.store_mall_directory), text: 'Produk'),
+        //     Tab(icon: Icon(Icons.person), text: 'Pelanggan'),
+        //     Tab(icon: Icon(Icons.point_of_sale), text: 'Penjualan'),
+        //     Tab(icon: Icon(Icons.account_circle), text: 'Akun'),
+        //   ],
+        // ),
 
         //),
         body: TabBarView(
@@ -122,7 +146,7 @@ class _ProdukPageState extends State<ProdukPage> {
             produk.isEmpty
                 ? const Center(child: CircularProgressIndicator())
                 : Scaffold(
-                  backgroundColor: Color.fromRGBO(120, 179, 206, 1),
+                    backgroundColor: Color.fromRGBO(120, 179, 206, 1),
                     body: ListView.builder(
                       itemCount: produk.length,
                       itemBuilder: (context, index) {
@@ -168,6 +192,31 @@ class _ProdukPageState extends State<ProdukPage> {
                                   icon: const Icon(Icons.delete,
                                       color: Colors.red),
                                   onPressed: () {
+                                    showDialog(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                              title: const Text(
+                                                  'Konfirmasi Hapus'),
+                                              content: const Text(
+                                                  'Apakah anda yakin ingin menghapus produk ini?'),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(context),
+                                                  child: const Text('Batal'),
+                                                ),
+                                                TextButton(
+                                                  onPressed: () {
+                                                    deleteProduk(
+                                                        prd['ProdukID']);
+                                                    Navigator.pop(context);
+                                                  },
+                                                  child: const Text('Hapus',
+                                                      style: TextStyle(
+                                                          color: Colors.red)),
+                                                )
+                                              ],
+                                            ));
                                   },
                                 ),
                               ],
