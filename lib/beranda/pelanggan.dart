@@ -1,46 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ukk_5/insert_pelanggan.dart';
-import 'package:ukk_5/login.dart';
-import '../insert.dart';
 
-class PelangganPage extends StatefulWidget {
-  const PelangganPage({super.key});
+class Pelanggan extends StatefulWidget {
+  const Pelanggan({super.key});
 
   @override
-  State<PelangganPage> createState() => _PelangganPageState();
+  State<Pelanggan> createState() => _PelangganState();
 }
 
-class _PelangganPageState extends State<PelangganPage> {
+class _PelangganState extends State<Pelanggan> {
   List<Map<String, dynamic>> pelanggan = [];
-  // final String username = "Admin";
-  // final String profilePictureUrl =
-  //     "https://via.placeholder.com/150"; // Placeholder profile picture
+  List<Map<String, dynamic>> filteredPelanggan = [];
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     fetchPelanggan();
+    _searchController.addListener(_filterPelanggan);
   }
 
   Future<void> fetchPelanggan() async {
     try {
-      final response = await Supabase.instance.client.from('pelanggan').select();
+      final response =
+          await Supabase.instance.client.from('pelanggan').select();
       setState(() {
         pelanggan = List<Map<String, dynamic>>.from(response ?? []);
+        filteredPelanggan = List<Map<String, dynamic>>.from(pelanggan);
       });
     } catch (e) {
-      print('Error fetching pelanggan: $e');
+      print('Error fetching products: $e');
     }
   }
 
   Future<void> editPelanggan(Map<String, dynamic> pelangganData) async {
     final TextEditingController namaController =
-        TextEditingController(text: pelangganData['Nama Pelanggan']);
+        TextEditingController(text: pelangganData['NamaPelanggan']);
     final TextEditingController alamatController =
-        TextEditingController(text: pelangganData['Alamat'].toString());
-    final TextEditingController notelpController =
-        TextEditingController(text: pelangganData['No Telp'].toString());
+        TextEditingController(text: pelangganData['Alamat']);
+    final TextEditingController nomorteleponController =
+        TextEditingController(text: pelangganData['NomorTelepon']);
 
     await showDialog(
       context: context,
@@ -52,32 +52,31 @@ class _PelangganPageState extends State<PelangganPage> {
               children: [
                 TextField(
                   controller: namaController,
-                  decoration: const InputDecoration(labelText: 'Nama Pelanggan'),
+                  decoration:
+                      const InputDecoration(labelText: 'Nama Pelanggan'),
                 ),
                 TextField(
                   controller: alamatController,
                   decoration: const InputDecoration(labelText: 'Alamat'),
-                  //keyboardType: TextInputType.number,
                 ),
                 TextField(
-                  controller: notelpController,
-                  decoration: const InputDecoration(labelText: 'No Telp'),
+                  controller: nomorteleponController,
+                  decoration: const InputDecoration(labelText: 'Nomor Telepon'),
                 ),
               ],
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Batal'),
-            ),
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Batal')),
             ElevatedButton(
               onPressed: () async {
                 try {
                   final updatedData = {
-                    'Nama Pelanggan': namaController.text,
+                    'NamaPelanggan': namaController.text,
                     'Alamat': alamatController.text,
-                    'No Telp': notelpController.text,
+                    'NomorTelepon': nomorteleponController.text,
                   };
                   await Supabase.instance.client
                       .from('pelanggan')
@@ -86,7 +85,7 @@ class _PelangganPageState extends State<PelangganPage> {
                   Navigator.pop(context);
                   fetchPelanggan();
                 } catch (e) {
-                  print('Error updating pelanggan: $e');
+                  print('Error updating customer: $e');
                 }
               },
               child: const Text('Simpan'),
@@ -97,96 +96,168 @@ class _PelangganPageState extends State<PelangganPage> {
     );
   }
 
+  Future<void> deletePelanggan(int PelangganID) async {
+    try {
+      await Supabase.instance.client
+          .from('pelanggan')
+          .delete()
+          .eq('PelangganID', PelangganID);
+      fetchPelanggan();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pelanggan berhasil dihapus'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      print('Error deleting customer: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gagal menghapus pelanggan!'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _filterPelanggan() {
+    setState(() {
+      String query = _searchController.text.toLowerCase();
+      filteredPelanggan = pelanggan
+          .where((plg) => plg['NamaPelanggan'].toLowerCase().contains(query))
+          .toList();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 4,
       child: Scaffold(
-        backgroundColor: const Color.fromRGBO(120, 179, 206, 1),
-        //appBar: AppBar(
-          // title: const Text('Fish & Coral Store'),
-          // centerTitle: true,
-          // backgroundColor: const Color.fromRGBO(201, 230, 240, 1),
-          // bottom: const TabBar(
-          //   tabs: [
-          //     Tab(icon: Icon(Icons.store_mall_directory), text: 'Produk'),
-          //     Tab(icon: Icon(Icons.person), text: 'Pelanggan'),
-          //     Tab(icon: Icon(Icons.point_of_sale), text: 'Penjualan'),
-          //     Tab(icon: Icon(Icons.account_circle), text: 'Akun'),
-          //   ],
-          // ),
-
-        //),
+        backgroundColor: Colors.green,
         body: TabBarView(
           children: [
             pelanggan.isEmpty
                 ? const Center(child: CircularProgressIndicator())
                 : Scaffold(
-                  backgroundColor: Color.fromRGBO(120, 179, 206, 1),
-                    body: ListView.builder(
-                      itemCount: pelanggan.length,
-                      itemBuilder: (context, index) {
-                        final plg = pelanggan[index];
-                        return Container(
-                          margin: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          child: ListTile(
-                            title: Text(
-                              plg['Nama Pelanggan'] ?? 'Tidak ada pelanggan',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 18),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  plg['Alamat']?.toString() ?? 'Tidak ada Alamat',
-                                  style: const TextStyle(
-                                      fontStyle: FontStyle.italic,
-                                      fontSize: 14),
-                                ),
-                                Text(
-                                  plg['No Telp']?.toString() ?? 'Tidak ada No Telp',
-                                  style: const TextStyle(
-                                      fontStyle: FontStyle.italic,
-                                      fontSize: 13),
-                                ),
-                              ],
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit,
-                                      color: Colors.blue),
-                                  onPressed: () => (plg),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete,
-                                      color: Colors.red),
-                                  onPressed: () {
-                                  },
-                                ),
-                              ],
+                    backgroundColor: Colors.green.shade200,
+                    body: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: TextField(
+                            controller: _searchController,
+                            decoration: const InputDecoration(
+                              hintText: 'Cari pelanggan...',
+                              prefixIcon: Icon(Icons.search),
+                              border: OutlineInputBorder(),
                             ),
                           ),
-                        );
-                      },
+                        ),
+                        Expanded(
+                          child: ListView.builder(
+                            itemCount: filteredPelanggan.length,
+                            itemBuilder: (context, index) {
+                              final plg = filteredPelanggan[index];
+                              return Container(
+                                margin: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(15),
+                                ),
+                                child: ListTile(
+                                  title: Text(
+                                    plg['NamaPelanggan'] ??
+                                        'Tidak ada pelanggan',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18),
+                                  ),
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        plg['Alamat']?.toString() ??
+                                            'Tidak ada Alamat',
+                                        style: const TextStyle(
+                                            fontStyle: FontStyle.italic,
+                                            fontSize: 14),
+                                      ),
+                                      Text(
+                                        plg['NomorTelepon']?.toString() ??
+                                            'Tidak ada Nomor Telepon',
+                                        style: const TextStyle(
+                                            fontStyle: FontStyle.italic,
+                                            fontSize: 14),
+                                      ),
+                                    ],
+                                  ),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.edit,
+                                            color: Colors.blue),
+                                        onPressed: () => editPelanggan(plg),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.delete,
+                                            color: Colors.red),
+                                        onPressed: () {
+                                          showDialog(
+                                              context: context,
+                                              builder: (context) => AlertDialog(
+                                                    title: const Text(
+                                                        'Konfirmasi Hapus'),
+                                                    content: const Text(
+                                                        'Apakah anda yakin ingin menghapus pelanggan ini?'),
+                                                    actions: [
+                                                      TextButton(
+                                                        onPressed: () =>
+                                                            Navigator.pop(
+                                                                context),
+                                                        child:
+                                                            const Text('Batal'),
+                                                      ),
+                                                      TextButton(
+                                                        onPressed: () {
+                                                          deletePelanggan(plg[
+                                                              'PelangganID']);
+                                                          Navigator.pop(
+                                                              context);
+                                                        },
+                                                        child: const Text(
+                                                            'Hapus',
+                                                            style: TextStyle(
+                                                                color: Colors
+                                                                    .red)),
+                                                      ),
+                                                    ],
+                                                  ));
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                     floatingActionButton: FloatingActionButton(
                       onPressed: () async {
                         final result = await Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => InsertPelangganPage()),
+                          MaterialPageRoute(
+                              builder: (context) => InsertPelangganPage()),
                         );
                         if (result == true) {
                           fetchPelanggan();
                         }
                       },
-                      backgroundColor: Colors.blue,
+                      backgroundColor: Colors.green,
                       child: const Icon(Icons.add, color: Colors.white),
                     ),
                   ),

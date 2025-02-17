@@ -58,9 +58,10 @@ class HomePage extends StatelessWidget {
         ),
         body: const TabBarView(
           children: [
-            ProdukPage(),
+            Produk(),
             PenjualanPage(),
-            PelangganPage(),
+            
+            Pelanggan(),
             AkunPage(),
           ],
         ),

@@ -1,25 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:ukk_5/login.dart';
-import '../insert.dart';
+import 'package:ukk_5/insert.dart';
 
-class ProdukPage extends StatefulWidget {
-  const ProdukPage({super.key});
+class Produk extends StatefulWidget {
+  const Produk({super.key});
 
   @override
-  State<ProdukPage> createState() => _ProdukPageState();
+  State<Produk> createState() => _ProdukState();
 }
 
-class _ProdukPageState extends State<ProdukPage> {
+class _ProdukState extends State<Produk> {
   List<Map<String, dynamic>> produk = [];
-  // final String username = "Admin";
-  // final String profilePictureUrl =
-  //     "https://via.placeholder.com/150"; // Placeholder profile picture
+  List<Map<String, dynamic>> filteredProduk = [];
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     fetchProduk();
+    _searchController.addListener(_filterProduk);
   }
 
   Future<void> fetchProduk() async {
@@ -27,15 +26,17 @@ class _ProdukPageState extends State<ProdukPage> {
       final response = await Supabase.instance.client.from('produk').select();
       setState(() {
         produk = List<Map<String, dynamic>>.from(response ?? []);
+        filteredProduk = produk;
       });
     } catch (e) {
       print('Error fetching products: $e');
     }
   }
 
+  //LOGIKA EDIT
   Future<void> editProduk(Map<String, dynamic> produkData) async {
     final TextEditingController namaController =
-        TextEditingController(text: produkData['Nama Produk']);
+        TextEditingController(text: produkData['NamaProduk']);
     final TextEditingController hargaController =
         TextEditingController(text: produkData['Harga'].toString());
     final TextEditingController stokController =
@@ -68,14 +69,13 @@ class _ProdukPageState extends State<ProdukPage> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Batal'),
-            ),
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Batal')),
             ElevatedButton(
               onPressed: () async {
                 try {
                   final updatedData = {
-                    'Nama Produk': namaController.text,
+                    'NamaProduk': namaController.text,
                     'Harga': int.parse(hargaController.text),
                     'Stok': int.parse(stokController.text),
                   };
@@ -97,21 +97,22 @@ class _ProdukPageState extends State<ProdukPage> {
     );
   }
 
-  Future<void> deleteProduk(int produkID) async {
+  //LOGIKA DELETE
+  Future<void> deleteProduk(int ProdukID) async {
     try {
       await Supabase.instance.client
           .from('produk')
           .delete()
-          .eq('ProdukID', produkID);
+          .eq('ProdukID', ProdukID);
       fetchProduk();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Produk berhasil dihapus!'),
+          content: Text('Produk berhasil dihapus'),
           backgroundColor: Colors.green,
         ),
       );
     } catch (e) {
-      print('Error deleting product: $e');
+      print('Error deleting produkct: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Gagal menghapus produk!'),
@@ -121,109 +122,172 @@ class _ProdukPageState extends State<ProdukPage> {
     }
   }
 
+  //LOGIKA SERACH BAR
+  void _filterProduk() {
+    setState(() {
+      String query = _searchController.text.toLowerCase();
+      filteredProduk = produk
+          .where((prd) => prd['NamaProduk'].toLowerCase().contains(query))
+          .toList();
+    });
+  }
+
+  Future<void> updateStokProduk(int produkID, int jumlah) async {
+  try {
+    // Ambil stok produk saat ini
+    final response = await Supabase.instance.client
+        .from('produk')
+        .select('Stok')
+        .eq('ProdukID', produkID)
+        .single();
+
+    int currentStock = response['Stok'] ?? 0;
+
+    if (currentStock >= jumlah) {
+      // Kurangi stok produk
+      final newStock = currentStock - jumlah;
+
+      await Supabase.instance.client
+          .from('produk')
+          .update({'Stok': newStock})
+          .eq('ProdukID', produkID);
+
+      print('Stok produk berhasil diperbarui');
+    } else {
+      // Jika stok tidak cukup
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Stok produk tidak mencukupi!'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  } catch (e) {
+    print('Error updating stock: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Gagal memperbarui stok produk'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+}
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 4,
       child: Scaffold(
-        backgroundColor: const Color.fromRGBO(120, 179, 206, 1),
-        //appBar: AppBar(
-        // title: const Text('Fish & Coral Store'),
-        // centerTitle: true,
-        // backgroundColor: const Color.fromRGBO(201, 230, 240, 1),
-        // bottom: const TabBar(
-        //   tabs: [
-        //     Tab(icon: Icon(Icons.store_mall_directory), text: 'Produk'),
-        //     Tab(icon: Icon(Icons.person), text: 'Pelanggan'),
-        //     Tab(icon: Icon(Icons.point_of_sale), text: 'Penjualan'),
-        //     Tab(icon: Icon(Icons.account_circle), text: 'Akun'),
-        //   ],
-        // ),
-
-        //),
+        backgroundColor: Color.fromRGBO(120, 179, 206, 1),
         body: TabBarView(
           children: [
             produk.isEmpty
                 ? const Center(child: CircularProgressIndicator())
                 : Scaffold(
                     backgroundColor: Color.fromRGBO(120, 179, 206, 1),
-                    body: ListView.builder(
-                      itemCount: produk.length,
-                      itemBuilder: (context, index) {
-                        final prd = produk[index];
-                        return Container(
-                          margin: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          child: ListTile(
-                            title: Text(
-                              prd['Nama Produk'] ?? 'Tidak ada produk',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 18),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  prd['Harga']?.toString() ?? 'Tidak ada Harga',
-                                  style: const TextStyle(
-                                      fontStyle: FontStyle.italic,
-                                      fontSize: 14),
-                                ),
-                                Text(
-                                  prd['Stok']?.toString() ?? 'Stok habis',
-                                  style: const TextStyle(
-                                      fontStyle: FontStyle.italic,
-                                      fontSize: 13),
-                                ),
-                              ],
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit,
-                                      color: Colors.blue),
-                                  onPressed: () => editProduk(prd),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete,
-                                      color: Colors.red),
-                                  onPressed: () {
-                                    showDialog(
-                                        context: context,
-                                        builder: (context) => AlertDialog(
-                                              title: const Text(
-                                                  'Konfirmasi Hapus'),
-                                              content: const Text(
-                                                  'Apakah anda yakin ingin menghapus produk ini?'),
-                                              actions: [
-                                                TextButton(
-                                                  onPressed: () =>
-                                                      Navigator.pop(context),
-                                                  child: const Text('Batal'),
-                                                ),
-                                                TextButton(
-                                                  onPressed: () {
-                                                    deleteProduk(
-                                                        prd['ProdukID']);
-                                                    Navigator.pop(context);
-                                                  },
-                                                  child: const Text('Hapus',
-                                                      style: TextStyle(
-                                                          color: Colors.red)),
-                                                )
-                                              ],
-                                            ));
-                                  },
-                                ),
-                              ],
+                    body: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: TextField(
+                            controller: _searchController,
+                            decoration: const InputDecoration(
+                              hintText: 'Cari produk...',
+                              prefixIcon: Icon(Icons.search),
+                              border: OutlineInputBorder(),
                             ),
                           ),
-                        );
-                      },
+                        ),
+                        Expanded(
+                          child: ListView.builder(
+                            itemCount: filteredProduk.length,
+                            itemBuilder: (context, index) {
+                              final prd = filteredProduk[index];
+                              return Container(
+                                margin: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(15),
+                                ),
+                                child: ListTile(
+                                  title: Text(
+                                    prd['NamaProduk'] ?? 'Tidak ada produk',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18),
+                                  ),
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        prd['Harga']?.toString() ??
+                                            'Tidak ada harga',
+                                        style: const TextStyle(
+                                            fontStyle: FontStyle.italic,
+                                            fontSize: 14),
+                                      ),
+                                      Text(
+                                        prd['Stok']?.toString() ??
+                                            'Tidak ada harga',
+                                        style: const TextStyle(
+                                            fontStyle: FontStyle.italic,
+                                            fontSize: 14),
+                                      ),
+                                    ],
+                                  ),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.edit,
+                                            color: Colors.blue),
+                                        onPressed: () => editProduk(prd),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.delete,
+                                            color: Colors.red),
+                                        onPressed: () {
+                                          showDialog(
+                                              context: context,
+                                              builder: (context) => AlertDialog(
+                                                    title: const Text(
+                                                        'Konfirmasi Hapus'),
+                                                    content: const Text(
+                                                        'Apakah anda yakin ingin menghapus produk ini?'),
+                                                    actions: [
+                                                      TextButton(
+                                                        onPressed: () =>
+                                                            Navigator.pop(
+                                                                context),
+                                                        child:
+                                                            const Text('Batal'),
+                                                      ),
+                                                      TextButton(
+                                                        onPressed: () {
+                                                          deleteProduk(
+                                                              prd['ProdukID']);
+                                                          Navigator.pop(
+                                                              context);
+                                                        },
+                                                        child: const Text(
+                                                            'Hapus',
+                                                            style: TextStyle(
+                                                                color: Colors
+                                                                    .red)),
+                                                      ),
+                                                    ],
+                                                  ));
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                     floatingActionButton: FloatingActionButton(
                       onPressed: () async {
@@ -245,4 +309,3 @@ class _ProdukPageState extends State<ProdukPage> {
     );
   }
 }
-//yaaa
