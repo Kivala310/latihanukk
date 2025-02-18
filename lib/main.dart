@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ukk_5/beranda/akun_page.dart';
+import 'package:ukk_5/beranda/detail_penjualan.dart';
 import 'package:ukk_5/beranda/home_page.dart';
 import 'package:ukk_5/beranda/pelanggan.dart';
 import 'package:ukk_5/beranda/penjualan_page.dart';
@@ -41,7 +42,7 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Fish & Coral Store'),
@@ -60,7 +61,7 @@ class HomePage extends StatelessWidget {
           children: [
             Produk(),
             PenjualanPage(),
-            
+            DetailPenjualan(),
             Pelanggan(),
             AkunPage(),
           ],
